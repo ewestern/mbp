@@ -38,15 +38,18 @@ def not_turn():
 
 @app.route('/turn', methods=['POST'])
 def turn():
+    ind = "     "
     r = json.loads(request.form['risk'])
     me, players, board = unpack_json(r)
-    print str({country.name : country.troops for country in me.countries})
     board.continent_lookup = {c_name : cont for cont_name, cont in board.continents.items() for c_name, country in cont.countries.items()}
+    print "Starting turn with the following allocation: \n" + ind + str('\n'.join([ind + c.name + " : " + str(c.troops) for c in me.countries]))
+    print "List of countries with total enemy troops bordering: " + str('\n'.join([ind + c.name + " : " + str(sum([e.troops for e in c.border_countries if e.owner != me]))
+                                                                        for c in me.countries]))
     print me.available_actions
     if "choose_country" in me.available_actions:
         country_choice = best_country(board, me)
         response = {"action":"choose_country", "data":country_choice.name}
-        print "choose: %s" % country_choice
+        print "choose: %s" % country_choice.name
         return json.dumps(response)
 
     elif "spend_cards" in me.available_actions:
@@ -68,6 +71,7 @@ def turn():
         best = best_attack(me, board)
         if best is None:
             response = {"action":"end_attack_phase"}
+            print "I choose not to fight"
         else:
 
             attacking_country, defending_country = best
@@ -78,8 +82,9 @@ def turn():
                     'attacking_troops':attacking_troops,
                     'moving_troops':moving_troops}
             response = {'action':'attack', 'data':data}
-            print "attacking %s from %s with %s troops, with an occupying force of %s" \
+            print "attacking %s, which has %s troops,  from %s with %s troops, with an occupying force of %s" \
                                                         % (defending_country.name,
+                                                            defending_country.troops,
                                                            attacking_country.name,
                                                            attacking_troops,
                                                            moving_troops)
@@ -96,7 +101,7 @@ def turn():
             response = {"action":"end_turn"}
             return json.dumps(response)
         origin_country, destination_country, moving_troops = reinforce(reinforce_countries, me, board)
-        print "reinforced %s from %s with %s troops" % (origin_country.name, destination_country.name, moving_troops)
+        print "reinforced %s from %s with %s troops" % (destination_country.name, origin_country.name, moving_troops)
         response = {'action':'reinforce', 'data':{'origin_country':origin_country.name,
                                                   'destination_country':destination_country.name,
                                                   'moving_troops':moving_troops}}
