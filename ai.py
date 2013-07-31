@@ -3,7 +3,8 @@ import json
 import random
 import math
 from operator import itemgetter
-from networkx.algorithms.shortest_paths.generic import shortest_path_length
+
+PREF = 5
 
 with open('./risk/attacking_win_probs_50_50.json') as prob_file:
     PROBS = {tuple(int(i) for i in k.strip('()').split(',')) : v 
@@ -12,8 +13,6 @@ with open('./risk/attacking_win_probs_50_50.json') as prob_file:
 with open('./risk/expected_troop_loss_50_50.json') as troop_file:
     TROOP_LOSS = {tuple(int(i) for i in k.strip('()').split(',')) : v 
                 for k, v in json.load(troop_file).items()}
-
-PREF = 1
 
 def best_country(board, player):
     """
@@ -49,11 +48,8 @@ def deploy_troops(player, board):
         del risk[country]
         if val > 10e-10:
             tps = max(math.ceil(num_to_deploy * val / tv), num_troops)
-            # tps = max(1, int(round())
             orders[country] = tps
             num_troops -= tps
-    # print "Total troops to deploy: %s" % num_to_deploy
-    # print "Troop Depoyment: %s" % {c.name: c.troops for c in player.countries}
     return orders
 
 def best_attack(player, board):
@@ -94,6 +90,9 @@ def bonus_value(board, country, player):
     """
         A country's bonus value is the contribution its capture would add to a possible bonus
 
+    :param board:
+    :param country:
+    :param player:
     """
     continent = board.continent_lookup[country.name]
     unconquered = len(continent.countries) - len([c for c in player.countries if c in continent.countries])
@@ -105,7 +104,9 @@ def position_value(country, board, player):
         The position value of a country increases proportionately to its value as a bonus component
         along with the square of its fortifiability value
     """
-    return bonus_value(board, country, player) * fortify_value(board, country)
+    fv = fortify_value(board, country)
+    # print "Fortify value for %s is %s" % (country.name, str(fv))
+    return bonus_value(board, country, player) * fv
 
 def ev_attack(base, target, player, board):
     """
@@ -125,7 +126,9 @@ def ev_attack(base, target, player, board):
     prob_win_attacker, (a_troop_loss, d_troop_loss), = get_probs_and_troops(attackers, defenders)
     ev_target_position = position_value(target, board, player) * prob_win_attacker
     net_troop_change = d_troop_loss - a_troop_loss
-    return ev_target_position * net_troop_change
+    # print "Target position component is %s, while troop-change component is %s" % \
+    #                     (str(ev_target_position), str(net_troop_change))
+    return ev_target_position * (1 + net_troop_change)
 
 
 def get_probs_and_troops(attackers, defenders, n = 50):
@@ -217,4 +220,3 @@ def troops_to_move(attacking_country, defending_country, player, board, attackin
         staying -= 1
         ratio = (staying / t[attacking_country.name]) / (moving/ t[defending_country.name])
     return moving
-

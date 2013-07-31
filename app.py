@@ -42,8 +42,8 @@ def turn():
     r = json.loads(request.form['risk'])
     me, players, board = unpack_json(r)
     board.continent_lookup = {c_name : cont for cont_name, cont in board.continents.items() for c_name, country in cont.countries.items()}
-    print "Starting turn with the following allocation: \n" + ind + str('\n'.join([ind + c.name + " : " + str(c.troops) for c in me.countries]))
-    print "List of countries with total enemy troops bordering: " + str('\n'.join([ind + c.name + " : " + str(sum([e.troops for e in c.border_countries if e.owner != me]))
+    print "Starting turn with the following allocation: \n" + str('\n'.join([ind + c.name + " : " + str(c.troops) for c in me.countries]))
+    print "List of countries with total enemy troops bordering: \n" + str('\n'.join([ind + c.name + " : " + str(sum([e.troops for e in c.border_countries if e.owner != me]))
                                                                         for c in me.countries]))
     print me.available_actions
     if "choose_country" in me.available_actions:
